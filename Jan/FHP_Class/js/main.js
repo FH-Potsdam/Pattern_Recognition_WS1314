@@ -1,8 +1,6 @@
  $(document).ready(function(){
                                                         
                                     d3.csv("auth.csv", function(data){
-
-                                    	console.log("testing git");
                 												
                 						var width = 580, height = 1660;
                 						var overview_rect = 1400;
