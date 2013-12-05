@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            
+            body {
+                background-color: #36342e;
+				
+            }
+            
+			#regex {
+				margin: 10px;
+			}
+			
+			.log_line {
+				shape-rendering: crispEdges;
+			}
+			
+			.highlight {
+				fill: #fccf00;
+			}
+			
+			.no_highlight {
+				fill: #fffcfc; 
+			}
+			
+			.time_line {
+				fill: #ffffff;
+				font-family: sans-serif;
+				font-size: 9px;
+				stroke: none;
+				shape-rendering: crispEdges;
+			}
+			
+			.time_line_text {
+				opacity: 0.0;
+			}
+			
+			.time_line_text_select {
+				opacity: 1.0;
+			}
+			
+			.brush .extent {
+  				fill-opacity: .2;
+  				shape-rendering: crispEdges;
+			}
+			
+			.canvas {
+				float: left;
+				
+			}
+			
+			.focus {
+				float: left;
+				background-color: #ffffff;
+				color: #a7a5a3;
+				margin: 10px;
+				padding: 10px;
+				width: 500px;
+				height: 480px;
+				overflow: auto;
+			}
+			
+			p {
+				font-family: Arial;
+				font-size: 11px;
+			}
+			
+			span {
+				background-color: #fccf00;
+			}
+        
+        </style>
+    </head>
+    <body>
+        <script src="../d3.v3.js">
+        </script>
+        <script src="../jquery-1.9.1.js">
+        </script>
+        <div id="log">
+            <script>
+                
+                $(document).ready(function(){
+                                        
+                    d3.csv("dump_with_port.csv", function(data){
+						
+						var width = 170, height = 660;
+						var overview_rect = 500;
+						var lines_per_pixel = data.length/overview_rect;
+						var format = d3.time.format("%Y-%m-%d %H:%M:%S"); // 2013-11-08 15:41:38.872972
+						//console.log(lines_per_pixel);
+												
+						var nest = d3.nest()
+    								.key(function(d) { return Math.round(+d.id/lines_per_pixel); })
+    								.entries(data);
+									
+						nest.forEach(function(d) {
+							d.markcount = 0;
+							d.values.forEach(function(e){
+								e.Time = format.parse(e.Time.substring(0,19));
+								e.marked = false;
+							});
+						});	
+												
+						var y = d3.scale.linear().range([10, 10+overview_rect])
+							.domain(d3.extent(data.map(function(d) { return +d.id; })));
+							
+						var ytime = d3.time.scale().range([10, 10+overview_rect])
+							.domain(d3.extent(data, function(d) { return d.Time; }));
+													
+						var minute_ticks = ytime.ticks(d3.time.minutes, 1);
+						
+						data.forEach(function(d) {
+							var first_set = false;
+							for (var j=0; j < minute_ticks.length; j++) {
+								if (d.Time - minute_ticks[j] === 0) {
+									if (first_set === false){
+										minute_ticks[j].value = minute_ticks[j];
+										minute_ticks[j].id = +d.id;
+										first = true;
+									}
+								} 
+							}
+						});
+						
+						var brush = d3.svg.brush()
+    						.y(y)
+							.extent([0, 1000])
+    						.on("brush", brushmove);
+												
+						var svg = d3.select("body")
+							.append("svg")
+							.attr("width", width)
+							.attr("height", height)
+							.classed("canvas", true);
+							
+						var container = svg.append("rect")
+							.attr("width", 100)
+							.attr("height", overview_rect)
+							.attr("x", 10)
+							.attr("y", 10)
+							.style("fill", "#fffcfc");
+							
+						var time_container = svg.append("rect")
+							.attr("width", 50)
+							.attr("height", overview_rect)
+							.attr("x", 111)
+							.attr("y", 10)
+							.style("fill", "#999999");
+							
+						var time_lines = svg.selectAll(".time_line")
+							.data(minute_ticks)
+							.enter()
+							.append("g")
+							.attr("class", "time_line")
+							.on("mousemove", function(d) {
+								visibilityText(this, "time_line_text_select");
+							})
+							.on("mouseout", function(d) {
+								visibilityText(this, "time_line_text");
+							});
+							
+						time_lines.append("rect")
+							.attr("width", 18)
+							.attr("height", 1)
+							.attr("x", 111)
+							.attr("y", function(d){
+                            	return y(+d.id);
+                        	})
+							.attr("opacity", 0.5);
+							
+							
+						time_lines.append("text")
+							.text(function(d) {
+								return format(d.value).substring(11,16);
+							})
+							.attr("text-anchor", "start")
+							.attr("x", "133")
+							.attr("y",function(d){
+                            	return y(+d.id)+1;
+                        	})
+							.attr("class", "time_line_text");
+							
+						var log_lines = svg.selectAll(".log_line")
+							.data(nest)
+							.enter()
+							.append("rect")
+							.attr("width", 100)
+							.attr("height", 1)
+							.attr("x", 10)
+							.attr("y", function(d, i){
+                            	return 10+i;
+                        	})
+							.attr("class",function(d) {
+								var temp = false;
+								d.values.forEach(function(e,j){
+									if (e.marked == true) {
+										temp = true;
+									} 
+								});
+								if (temp == true) {
+									return "log_line highlight";
+								} else {
+									return "log_line no_highlight";
+								}
+							});
+							
+						var brushg = svg.append("g")
+    						.attr("class", "brush")
+    						.call(brush)
+							.selectAll("rect")
+      						.attr("x", 10)
+      						.attr("width", 100);
+							
+						var detail = d3.select("body").append("div")
+							.attr("width", 700)
+							.attr("height", overview_rect)
+							.classed("focus", true);
+							
+						detail.append("p")
+							.classed("focus_text", true);
+							
+						
+						function visibilityText(selected, classname) {
+							d3.select(selected)
+								.select("text")
+								.transition(1000)
+								.attr("class", classname);
+						}
+						
+						function brushmove() {
+							begin = Math.round(brush.extent()[0])-1;
+							end = Math.round(brush.extent()[1])-1;
+							$("p").text("");
+							
+							for(var i = begin;i < end; i++) {
+								var temp = $("#regex").val().toLowerCase();
+								if (data[i].Info.toLowerCase().indexOf(temp) !== -1) {
+									$("p").append(data[i].Info.toLowerCase().replace(temp, "<span>"+temp+"</span>")+"<BR>");
+								} else {
+									$("p").append(data[i].Info+"<BR>");
+								}
+							}
+						}
+							
+						$('#suchen').click(function(){
+							
+                            console.log($("#regex").val());				
+														
+							nest.forEach(function(d) {
+								d.markcount = 0;
+								d.values.forEach(function(e){
+									if (e.Info.toLowerCase().indexOf($("#regex").val().toLowerCase()) !== -1) {
+										e.marked = true;
+										d.markcount++;
+									} else {
+										e.marked = false;
+									}
+								});
+							});		
+									
+							//console.log(nest);
+				
+							log_lines.attr("class",function(d) {
+								var temp = false;
+								d.values.forEach(function(e,j){
+									if (e.marked == true) {
+										temp = true;
+									} 
+								});
+								if (temp == true) {
+									return "log_line highlight";
+								} else {
+									return "log_line no_highlight";
+								}
+							})
+							.attr("opacity", function(d) {
+								return 0.5+d.markcount/lines_per_pixel;	
+							});	
+							
+                        });
+						
+						function getSelectionText() {
+    						var text = "";
+    						if (window.getSelection) {
+        						text = window.getSelection().toString();
+    						} else if (document.selection && document.selection.type != "Control") {
+        						text = document.selection.createRange().text;
+    						}
+    						return text;
+						}
+						
+						$("#find_occurences").bind("click", function() {
+							var selected_text = getSelectionText();
+							alert(selected_text);
+						});
+						
+						
+					});
+						
+                });
+                        			
+            </script>
+        </div>
+		
+        <div id="search">
+            <input type="text" id="regex" size=10 value="scanner" style="height:15px;width:200px"/>
+			<input type="button" id="suchen" value="Suchen" />
+			<input type="button" id="find_occurences" value="Find Occurences" />
+        </div>
+	
+			
+    </body>
+</html>

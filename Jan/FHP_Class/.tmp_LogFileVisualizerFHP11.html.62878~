@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            
+            body {
+                background-color: #36342e;
+            }
+            
+            #regex {
+                margin: 10px;
+            }
+            
+            .log_line {
+                shape-rendering: crispEdges;
+            }
+            
+            .highlight {
+                fill: #fccf00;
+            }
+            
+            .no_highlight {
+                fill: #606060;
+            }
+            
+            .time_line {
+                fill: #ffffff;
+                font-family: sans-serif;
+                font-size: 9px;
+                stroke: none;
+                shape-rendering: crispEdges;
+            }
+            
+            .time_line_text {
+                opacity: 0.0;
+            }
+            
+            .time_line_text_select {
+                opacity: 1.0;
+            }
+            
+            .brush .extent {
+                fill-opacity: .2;
+                shape-rendering: crispEdges;
+            }
+            
+            .canvas {
+                float: left;
+            }
+            
+            .focus {
+                float: left;
+                background-color: #ffffff;
+                color: #a7a5a3;
+                margin: 10px;
+                padding: 10px;
+                width: 500px;
+                height: 480px;
+                overflow: auto;
+            }
+            
+            p {
+                font-family: Arial;
+                font-size: 11px;
+            }
+            
+            span {
+                background-color: #fccf00;
+            }
+            
+            .link {
+                fill: none;
+                stroke: #f2f2f2;
+                stroke-width: 1px;
+                opacity: 0.3;
+            }
+            
+            .hidden {
+                visibility: hidden;
+            }
+            
+            .visible {
+                visibility: visible;
+            }
+            
+            .circle_text {
+                fill: #f2f2f2;
+                font-family: sans-serif;
+                font-size: 9px;
+                stroke: none;
+                shape-rendering: crispEdges;
+            }
+        </style>
+    </head>
+    <body>
+        <script src="../d3.v3.js">
+        </script>
+        <script src="../jquery-1.9.1.js">
+        </script>
+        <div id="log">
+            <script>
+                				
+                                
+                                $(document).ready(function(){
+                                                        
+                                    d3.csv("auth.csv", function(data){
+                												
+                						var width = 350, height = 660;
+                						var overview_rect = 500;
+                						var lines_per_pixel = data.length/overview_rect;
+                						var format = d3.time.format("%y.%m.%d %H:%M"); //01.08.18 06:26
+                						console.log(lines_per_pixel);
+                						
+                						var diagonal = d3.svg.diagonal()
+                    						.projection(function(d) { return [d.y, d.x]; });
+                												
+                						var y = d3.scale.linear().range([10, 10+overview_rect])
+                							.domain(d3.extent(data.map(function(d,i) { return i; })));
+                							
+                						var ytime = d3.time.scale().range([10, 10+overview_rect])
+                							.domain(d3.extent(data, function(d) { return d.Time; }));
+                							
+                						var hour_ticks = ytime.ticks(d3.time.hours, 1);
+                						var frequency = [];
+										
+										
+                						data.forEach(function(d,i) {
+                							var first_set = false;
+                							d.id = i+1;
+                							for (var j=0; j < hour_ticks.length; j++) {
+                								if (d.Time - hour_ticks[j] === 0) {
+                									if (first_set === false){
+                										hour_ticks[j].value = hour_ticks[j];
+                										hour_ticks[j].id = i;
+                										first = true;
+                									}
+                								} 
+                							}
+											
+                							if (frequency.length > 0) {
+                								var found = false;
+                								for(var k = 0; k < frequency.length; k++) {
+                									if ((frequency[k].SourceIP === d.SourceIP) && (found === false)) {
+                										frequency[k].value++;
+                										found = true;
+                										//console.log(frequency[k].value);
+                									} else if ((k === frequency.length-1) && (frequency[k].SourceIP !== d.SourceIP) && (found === false)) {
+                										frequency.push({SourceIP:d.SourceIP, value:0}); //unklar: warum muss startwert hier null sein?
+                										//console.log(frequency[k].value);
+                										//console.log(d.SourceIP);
+                									}
+                								}
+                							} else {
+                								frequency.push({SourceIP:d.SourceIP, value:1});
+                							}
+                							
+                							frequency.forEach(function(e,j) {
+                								if (d.SourceIP === e.SourceIP) {
+                									if (!e.children) {
+                										e.children = [];
+                									} else {
+                										e.children.push({id: d.id});
+                									}
+                								}
+                							})
+                							
+                						});
+										
+										
+										function calculateFrequency(array, attribute) {
+											
+											var frequency_new = {};
+											var value;
+											
+											for (var i = 0; i < array.length; i++) {
+												value = array[i][attribute];
+												if (value in frequency_new) {
+													frequency_new[value]++;
+												} else {
+													frequency_new[value] = 1;
+												}
+											}
+											
+											//console.log(frequency_new);
+											return frequency_new;
+										}
+										
+										console.log(calculateFrequency(data, "Username"));
+										//console.log(frequency);
+										
+										var IP_nodes = [];
+                    					var links = [];
+                						
+                    					frequency.forEach(function(d, i) {
+                        					d.x = 100;
+                        					d.y = 10+overview_rect/frequency.length*i;
+											
+                							getCountryFromIP(d.SourceIP, i, function(location) {
+                								d.country = location.country_name;
+                							});
+                							
+                        					IP_nodes.push(d);
+                        					d.children.forEach(function(c, i) {
+                            					c.x = 188;
+                								c.y = 10+overview_rect/data.length*c.id;
+                            
+                            					var a = {x:c.y, y:c.x};
+                            					var b = {x:d.y, y:d.x};
+                            					links.push({sourceIP: d.SourceIP, id: c.id, source: b, target: a});
+                        					})
+                    					})
+										
+										
+                						
+                						var nest = d3.nest()
+                    								.key(function(d,i) { return Math.round(+d.id/lines_per_pixel); })
+                    								.entries(data);
+                									
+                						nest.forEach(function(d) {
+                							d.markcount = 0;
+                							d.values.forEach(function(e){
+                								e.Time = format.parse(e.Time);
+                								//console.log(e.Time);
+                								e.marked = false;
+                							});
+                						});	
+                						                													
+                						
+                						var brush = d3.svg.brush()
+                    						.y(y)
+                							.extent([0, 1000])
+                    						.on("brush", brushmove);
+                												
+                						var svg = d3.select("body")
+                							.append("svg")
+                							.attr("width", width)
+                							.attr("height", height)
+                							.classed("canvas", true);
+                							
+                						var container = svg.append("rect")
+                							.attr("width", 100)
+                							.attr("height", overview_rect)
+                							.attr("x", 190)
+                							.attr("y", 10)
+                							.style("fill", "#606060");
+                							
+                						var time_container = svg.append("rect")
+                							.attr("width", 50)
+                							.attr("height", overview_rect)
+                							.attr("x", 291)
+                							.attr("y", 10)
+                							.style("fill", "#999999");
+                							
+                						var time_lines = svg.selectAll(".time_line")
+                							.data(hour_ticks)
+                							.enter()
+                							.append("g")
+                							.attr("class", "time_line")
+                							.on("mousemove", function(d) {
+                								visibilityText(this, "time_line_text_select");
+                							})
+                							.on("mouseout", function(d) {
+                								visibilityText(this, "time_line_text");
+                							});
+                							
+                						time_lines.append("rect")
+                							.attr("width", 18)
+                							.attr("height", 1)
+                							.attr("x", 291)
+                							.attr("y", function(d,i){
+                                            	return y(i);
+                                        	})
+                							.attr("opacity", 0.5);
+                							
+                							
+                						time_lines.append("text")
+                							.text(function(d) {
+                								return format(d.value).substring(9,10);
+                							})
+                							.attr("text-anchor", "start")
+                							.attr("x", "203")
+                							.attr("y",function(d,i){
+                                            	return y(i)+1;
+                                        	})
+                							.attr("class", "time_line_text");
+                							
+                						var log_lines = svg.selectAll(".log_line")
+                							.data(nest)
+                							.enter()
+                							.append("rect")
+                							.attr("width", 100)
+                							.attr("height", 1)
+                							.attr("x", 190)
+                							.attr("y", function(d, i){
+                                            	return 10+i;
+                                        	})
+                							.attr("class",function(d) {
+                								var temp = false;
+                								d.values.forEach(function(e,j){
+                									if (e.marked == true) {
+                										temp = true;
+                									} 
+                								});
+                								if (temp == true) {
+                									return "log_line highlight";
+                								} else {
+                									return "log_line no_highlight";
+                								}
+                							});
+                							
+                						var brushg = svg.append("g")
+                    						.attr("class", "brush")
+                    						.call(brush)
+                							.selectAll("rect")
+                      						.attr("x", 190)
+                      						.attr("width", 100);
+                							
+                						var detail = d3.select("body").append("div")
+                							.attr("width", 700)
+                							.attr("height", overview_rect)
+                							.classed("focus", true);
+                							
+                						detail.append("p")
+                							.classed("focus_text", true);		
+
+                							
+																	
+										function buildIPConnections(){
+											
+											//console.log(frequency[4]);
+											var link = svg.selectAll(".link")
+												.data(links).enter()
+												.append("path")
+												.attr("class", "link hidden")
+												.attr("d", diagonal);
+											
+											var circle_and_text = svg.selectAll(".circle_and_text")
+												.data(IP_nodes)
+												.enter()
+												.append("g")
+												.attr("class", "circle_and_text");
+											
+											var circle_text = circle_and_text
+												.append("text").attr("x", function(d){
+													return d.x - 90
+												}).attr("y", function(d){
+													return d.y + 4
+												}).text(function(d){
+													if (d.country !== undefined) {
+														return d.country.substring(0, 16);
+													} else {
+														return d.SourceIP.substring(0, 16);
+													}
+												}).attr("class", "circle_text");
+											
+											var circle = circle_and_text
+												.append("circle").attr("cx", function(d){
+													return d.x
+												}).attr("cy", function(d){
+													return d.y
+												}).attr("r", 4).attr("class", "circle").style("fill", "#ff9700").on("click", function(d){
+													link.transition().attr("class", function(e){
+														if (e.sourceIP === d.SourceIP) {
+															return "link visible";
+														}
+														else {
+															return "link hidden";
+														}
+													});
+												});
+												
+										}
+                							
+											
+                						function visibilityText(selected, classname) {
+                							d3.select(selected)
+                								.select("text")
+                								.transition(1000)
+                								.attr("class", classname);
+                						}
+                						
+                						function brushmove() {
+                							begin = Math.round(brush.extent()[0]);
+                							end = Math.round(brush.extent()[1]);
+                							$("p").text("");
+                							
+                							for(var i = begin;i < end; i++) {
+                								var temp = $("#regex").val().toLowerCase();
+                								if (data[i].LogMessage.toLowerCase().indexOf(temp) !== -1) {
+                									$("p").append(data[i].SourceIP + "    MESSAGE: " + data[i].LogMessage.toLowerCase().replace(temp, "<span>"+temp+"</span>")+"<BR>");
+                								} else {
+                									$("p").append(data[i].SourceIP + "    MESSAGE: " + data[i].LogMessage+"<BR>");
+                								}
+                							}
+                						}
+                						
+                						function findOccurrences(){
+                							
+                                            //console.log($("#regex").val());	
+																						       														
+                							nest.forEach(function(d) {
+                								d.markcount = 0;
+                								d.values.forEach(function(e){
+                									if (e.LogMessage.toLowerCase().indexOf($("#regex").val().toLowerCase()) !== -1) {
+                										e.marked = true;
+                										d.markcount++;
+                									} else {
+                										e.marked = false;
+                									}
+                								});
+                							});		
+                									
+                							console.log(nest);
+                				
+                							log_lines.attr("class",function(d) {
+                								var temp = false;
+                								d.values.forEach(function(e,j){
+                									if (e.marked == true) {
+                										temp = true;
+                									} 
+                								});
+                								if (temp == true) {
+                									return "log_line highlight";
+                								} else {
+                									return "log_line no_highlight";
+                								}
+                							})
+                							.attr("opacity", function(d) {
+                								return 0.3+d.markcount/lines_per_pixel;	
+                							});	
+                							
+                							brushmove();
+                							
+                                        }
+                							
+                						$('#suchen').click(findOccurrences);
+                						
+                						function getSelectionText() {
+                    						var text = "";
+                    						if (window.getSelection) {
+                        						text = window.getSelection().toString();
+                    						} else if (document.selection && document.selection.type != "Control") {
+                        						text = document.selection.createRange().text;
+                    						}
+                    						return text;
+                						}
+                						
+                						$("#find_occurences").bind("click", function() {
+                							var selected_text = getSelectionText();
+                							$("#regex").val(selected_text);
+                							$('#suchen').click(findOccurrences());
+                						});
+                						
+                						function getCountryFromIP(ip, index, callback) {
+                							
+                							jQuery.getJSON("http://freegeoip.net/json/"+ip, function(location) {
+                								callback(location);
+												
+                  								/*jQuery('#region-code').html(location.region_code);
+                  								jQuery('#region-name').html(location.region_name);
+                  								jQuery('#areacode').html(location.areacode);
+                  								jQuery('#ip').html(location.ip);
+                  								jQuery('#zipcode').html(location.zipcode);
+                  								jQuery('#longitude').html(location.longitude);
+                  								jQuery('#latitude').html(location.latitude);
+                  								jQuery('#country-name').html(location.country_name);
+                  								jQuery('#country-code').html(location.country_code);*/
+                							}).done(function() {
+												if (index === frequency.length-1) {
+													console.log("building");
+													buildIPConnections();
+												}
+											});
+                							
+                						}
+                							
+                							
+                					});
+                						
+                                });
+                                        			
+                            
+            </script>
+        </div>
+        <div id="search">
+            <input type="text" id="regex" size=10 value="scanner" style="height:15px;width:200px"/><input type="button" id="suchen" value="Suchen" /><input type="button" id="find_occurences" value="Find Occurences" />
+        </div>
+    </body>
+</html>

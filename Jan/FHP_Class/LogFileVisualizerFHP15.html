@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            
+            body {
+                background-color: #252525;
+            }
+            
+            #regex {
+                margin: 10px;
+            }
+            
+            .log_line {
+                shape-rendering: crispEdges;
+            }
+            
+            .highlight {
+                fill: #ffb100;
+            }
+            
+            .no_highlight {
+                fill: #606060;
+            }
+            
+            .time_line {
+                fill: #ffffff;
+                font-family: sans-serif;
+                font-size: 9px;
+                stroke: none;
+                shape-rendering: crispEdges;
+            }
+            
+            .time_line_text {
+                opacity: 0.0;
+            }
+            
+            .time_line_text_select {
+                opacity: 1.0;
+            }
+            
+            .brush .extent {
+                fill-opacity: .2;
+                shape-rendering: crispEdges;
+            }
+            
+            .canvas {
+                float: left;
+            }
+            
+            .focus {
+                float: left;
+                background-color: #ffffff;
+                color: #737270;
+                margin: 20px;
+                padding: 10px;
+                width: 500px;
+                height: 480px;
+                overflow: auto;
+            }
+            
+            p {
+                font-family: Arial;
+                font-size: 11px;
+            }
+            
+            span {
+                background-color: #ffb100;
+            }
+            
+            .link_SourceIP {
+                fill: none;
+                stroke: #6bd4e6;
+                stroke-width: 1px;
+                opacity: 0.3;
+            }
+			
+			.link_Username {
+                fill: none;
+                stroke: #00e684;
+                stroke-width: 1px;
+                opacity: 0.3;
+            }
+			
+			.link_SourcePort {
+                fill: none;
+                stroke: #00e684;
+                stroke-width: 1px;
+                opacity: 0.3;
+            }
+            
+            .hidden {
+                visibility: hidden;
+            }
+            
+            .visible {
+                visibility: visible;
+            }
+            
+            .circle_text_SourceIP {
+                fill: #f2f2f2;
+                font-family: sans-serif;
+                font-size: 8px;
+                stroke: none;
+                shape-rendering: crispEdges;
+            }
+			
+			.circle_text_Username {
+                fill: #f2f2f2;
+                font-family: sans-serif;
+                font-size: 8px;
+                stroke: none;
+                shape-rendering: crispEdges;
+            }
+			
+			.circle_text_SourcePort {
+                fill: #f2f2f2;
+                font-family: sans-serif;
+                font-size: 8px;
+                stroke: none;
+                shape-rendering: crispEdges;
+            }
+			
+			.circle_SourceIP {
+                fill: #6bd4e6;
+                stroke: none;
+				opacity: 0.9;
+            }
+			
+			.circle_Username {
+                fill: #00e684;
+                stroke: none;
+				opacity: 0.9;
+            }
+			
+			.circle_SourcePort {
+                fill: #00e684;
+                stroke: none;
+				opacity: 0.9;
+            }
+			
+        </style>
+    </head>
+    <body>
+        <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+        <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+        <div id="log">
+            <script src="js/main.js">
+                				
+                                
+                               /**/
+                                        			
+                            
+            </script>
+        </div>
+        <div id="search">
+            <input type="text" id="regex" size=10 value="scanner" style="height:15px;width:200px"/><input type="button" id="suchen" value="Suchen" /><input type="button" id="find_occurences" value="Find Occurences" />
+        </div>
+    </body>
+</html>
