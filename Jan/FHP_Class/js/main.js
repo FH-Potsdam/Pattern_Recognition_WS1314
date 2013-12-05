@@ -24,6 +24,7 @@
                     					var user_links = [];
 										var source_port_nodes = [];
                     					var source_port_links = [];
+                    					var outgoing_links = [];
 										
 										var svg = d3.select("body")
                 							.append("svg")
@@ -79,98 +80,96 @@
 										
 										//console.log(data);
                 						
-										   
 											
+										var container_xpos = 190
+											time_container_xpos = container_xpos + 101,
+											timelines_xpos = time_container_xpos + 20;
 											
-											var container_xpos = 190
-												time_container_xpos = container_xpos + 101,
-												timelines_xpos = time_container_xpos + 20;
+										var brush = d3.svg.brush()
+											.y(y)
+											.extent([0, 500])
+											.on("brush", brushmove);
 											
-											var brush = d3.svg.brush()
-												.y(y)
-												.extent([0, 500])
-												.on("brush", brushmove);
+										var container = svg.append("rect")
+											.attr("width", 100)
+											.attr("height", overview_rect)
+											.attr("x", container_xpos)
+											.attr("y", 20)
+											.style("fill", "#606060");
 											
-											var container = svg.append("rect")
-												.attr("width", 100)
-												.attr("height", overview_rect)
-												.attr("x", container_xpos)
-												.attr("y", 20)
-												.style("fill", "#606060");
+										var time_container = svg.append("rect")
+											.attr("width", 50)
+											.attr("height", overview_rect)
+											.attr("x", time_container_xpos)
+											.attr("y", 20)
+											.style("fill", "#999999");
 											
-											var time_container = svg.append("rect")
-												.attr("width", 50)
-												.attr("height", overview_rect)
-												.attr("x", time_container_xpos)
-												.attr("y", 20)
-												.style("fill", "#999999");
+										var time_lines = svg.selectAll(".time_line")
+											.data(hour_ticks)
+											.enter()
+											.append("g")
+											.attr("class", "time_line")
+											.on("mousemove", function(d){
+												visibilityText(this, "time_line_text_select");
+											}).on("mouseout", function(d){
+												visibilityText(this, "time_line_text");
+											});
 											
-											var time_lines = svg.selectAll(".time_line")
-												.data(hour_ticks)
-												.enter()
-												.append("g")
-												.attr("class", "time_line")
-												.on("mousemove", function(d){
-													visibilityText(this, "time_line_text_select");
-												}).on("mouseout", function(d){
-													visibilityText(this, "time_line_text");
-												});
+										time_lines.append("rect")
+											.attr("width", 18)
+											.attr("height", 1)
+											.attr("x", time_container_xpos)
+											.attr("y", function(d, i){
+												return y(+d.id);
+											}).attr("opacity", 0.5);
 											
-											time_lines.append("rect")
-												.attr("width", 18)
-												.attr("height", 1)
-												.attr("x", time_container_xpos)
-												.attr("y", function(d, i){
-													return y(+d.id);
-												}).attr("opacity", 0.5);
+										time_lines.append("text")
+											.text(function(d){
+												return format(d.value).substring(9, 14);
+											}).attr("text-anchor", "start")
+											.attr("x", timelines_xpos)
+											.attr("y", function(d){
+												return y(+d.id) + 2;
+											}).attr("class", "time_line_text");
 											
-											time_lines.append("text")
-												.text(function(d){
-													return format(d.value).substring(9, 14);
-												}).attr("text-anchor", "start")
-												.attr("x", timelines_xpos)
-												.attr("y", function(d){
-													return y(+d.id) + 2;
-												}).attr("class", "time_line_text");
-											
-											var log_lines = svg.selectAll(".log_line")
-												.data(nest)
-												.enter()
-												.append("rect")
-												.attr("width", 100)
-												.attr("height", 1)
-												.attr("x", container_xpos)
-												.attr("y", function(d, i){
-													return 20 + i;
-												}).attr("class", function(d){
-													var temp = false;
-													d.values.forEach(function(e, j){
-														if (e.marked == true) {
-															temp = true;
-														}
-													});
-													if (temp == true) {
-														return "log_line highlight";
-													}
-													else {
-														return "log_line no_highlight";
+										var log_lines = svg.selectAll(".log_line")
+											.data(nest)
+											.enter()
+											.append("rect")
+											.attr("width", 100)
+											.attr("height", 1)
+											.attr("x", container_xpos)
+											.attr("y", function(d, i){
+												return 20 + i;
+											}).attr("class", function(d){
+												var temp = false;
+												d.values.forEach(function(e, j){
+													if (e.marked == true) {
+														temp = true;
 													}
 												});
+												if (temp == true) {
+													return "log_line highlight";
+												}
+												else {
+													return "log_line no_highlight";
+												}
+											});
 											
-											var brushg = svg.append("g")
-												.attr("class", "brush")
-												.call(brush)
-												.selectAll("rect")
-												.attr("x", container_xpos)
-												.attr("width", 100);
+										var brushg = svg.append("g")
+											.attr("class", "brush")
+											.call(brush)
+											.selectAll("rect")
+											.attr("x", container_xpos)
+											.attr("width", 100);
 											
-											var detail = d3.select("body")
-												.append("div")
-												.attr("width", 700)
-												.attr("height", overview_rect)
-												.classed("focus", true);
+										var detail = d3.select("body")
+											.append("div")
+											.attr("width", 700)
+											.attr("height", overview_rect)
+											.classed("focus", true);
 											
-											detail.append("p").classed("focus_text", true);
+										detail.append("p").classed("focus_text", true);
 											
 										$('#suchen').click(findOccurrences);
 										$("#find_occurences").bind("click", function() {
@@ -252,7 +251,7 @@
 										}
 												
 																	
-										function buildIPConnections(attribute, _nodes, _links, side){
+										function buildIncomingConnections(attribute, _nodes, _links, side){
 											
 											var link = svg.selectAll(".link_" + attribute)
 												.data(_links)
@@ -298,7 +297,8 @@
 												.attr("class", "circle_" + attribute)
 												//.style("fill", "#ff9700")
 												.on("click", function(d){
-													console.log("click");
+													console.log(d.children[0].id);
+													buildIncomingConnections(d.children);
 													link.transition()
 													.attr("class", function(e){
 														if (e[attribute] === d[attribute]) {
@@ -310,6 +310,10 @@
 													});
 												});
 												
+										}
+
+										function buildIncomingConnections(_outgoing_links) {
+											outgoing_links = _outgoing_links;
 										}
                 							
 											
@@ -399,8 +403,8 @@
 													for(var i = 0; i < IP_to_country.length; i++) {
 														IP_nodes[i].country = IP_to_country[i].country;
 													}
-													buildIPConnections("SourceIP", IP_nodes, IP_links, "left");
-													buildIPConnections("Username", user_nodes, user_links, "right");
+													buildIncomingConnections("SourceIP", IP_nodes, IP_links, "left");
+													buildIncomingConnections("Username", user_nodes, user_links, "right");
 													//buildIPConnections("SourcePort", source_port_nodes, source_port_links, "right");
 												}
 											});
