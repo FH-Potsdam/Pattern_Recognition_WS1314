@@ -25,6 +25,9 @@
 										var source_port_nodes = [];
                     					var source_port_links = [];
                     					var outgoing_links = [];
+                    					var sourceIP_connections;
+                    					var username_connections;
+
 										
 										var svg = d3.select("body")
                 							.append("svg")
@@ -58,13 +61,9 @@
 										
 										user_frequency = calculateFrequencyAndLinks(data, "Username");
 										calculateNodeLinkPositions(user_frequency, "Username", user_nodes, user_links, 431, 343);
-										//console.log(user_links);
-										//console.log(hour_ticks);
-										
 										
 										source_port_frequency = calculateFrequencyAndLinks(data, "SourcePort");
 										calculateNodeLinkPositions(source_port_frequency, "SourcePort", source_port_nodes, source_port_links, 431, 343);
-										
                 						
                 						var nest = d3.nest()
                     								.key(function(d,i) { return Math.round(+d.id/lines_per_pixel); })
@@ -79,7 +78,6 @@
                 						});	
 										
 										//console.log(data);
-                						
 											
 										var container_xpos = 190
 											time_container_xpos = container_xpos + 101,
@@ -170,6 +168,7 @@
 											.classed("focus", true);
 											
 										detail.append("p").classed("focus_text", true);
+
 											
 										$('#suchen').click(findOccurrences);
 										$("#find_occurences").bind("click", function() {
@@ -178,6 +177,7 @@
                 							$('#suchen').click(findOccurrences());
                 						});
 										
+
 										function getCountries(_frequency, attribute) {
 											
 											var fLength = 0;
@@ -224,7 +224,6 @@
 													temp.source = b;
 													temp.target = a;
 													_links.push(temp);
-													
 												});
 												l++;
 											}
@@ -251,22 +250,26 @@
 										}
 												
 																	
-										function buildIncomingConnections(attribute, _nodes, _links, side){
-											
-											var link = svg.selectAll(".link_" + attribute)
+										function BuildOutgoingConnections(attribute, _nodes, _links, side){
+
+											var self = this;
+											var att = attribute;
+											this._att = att;
+
+											this.link = svg.selectAll(".link_" + att)
 												.data(_links)
 												.enter()
 												.append("path")
-												.attr("class", "link_" + attribute + " hidden")
+												.attr("class", "link_" + att + " hidden")
 												.attr("d", diagonal);
 											
-											var circle_and_text = svg.selectAll(".circle_and_text_" + attribute)
+											this.circle_and_text = svg.selectAll(".circle_and_text_" + att)
 												.data(_nodes)
 												.enter()
 												.append("g")
-												.attr("class", "circle_and_text_" + attribute);
-											
-											var circle_text = circle_and_text
+												.attr("class", "circle_and_text_" + att);
+
+											this.circle_text = this.circle_and_text
 												.append("text")
 												.attr("x", function(d){
 													if (side === "left") {
@@ -280,12 +283,11 @@
 													if (d.country !== undefined) {
 														return d.country.substring(0, 25);
 													} else {
-														//console.log(Object.keys(IP_nodes)[i]);
-														return d[attribute].substring(0, 25); 
+														return d[att].substring(0, 25); 
 													}
-												}).attr("class", "circle_text_" + attribute);
+												}).attr("class", "circle_text_" + att);
 											
-											var circle = circle_and_text
+											this.circle = this.circle_and_text
 												.append("circle")
 												.attr("cx", function(d){
 													return d.x
@@ -294,34 +296,47 @@
 												}).attr("r", function(d) {
 													return 2+Math.log(d.count);
 												})
-												.attr("class", "circle_" + attribute)
-												//.style("fill", "#ff9700")
+												.attr("class", "circle_" + att)
 												.on("click", function(d){
-													console.log(d.children[0].id);
-													buildIncomingConnections(d.children);
-													link.transition()
+													buildIncomingConnections(d.children, att);
+													self.link.transition()
 													.attr("class", function(e){
-														if (e[attribute] === d[attribute]) {
-															return "link_" + attribute + " visible";
+														if (e[att] === d[att]) {
+															return "link_" + att + " visible";
 														}
 														else {
-															return "link_" + attribute + " hidden";
+															return "link_" + att + " hidden";
 														}
 													});
 												});
-												
 										}
 
-										function buildIncomingConnections(_outgoing_links) {
-											outgoing_links = _outgoing_links;
+
+										function buildIncomingConnections(_children, _att) {
+
+											username_connections.link.attr("class", function(c) { //nur mit Umweg über die id möglich 
+												//console.log("children: "+ _children);
+												isVisible = _children.some(function(element) {
+													return (c.id === element.id);
+												});
+
+												if (isVisible === true) {
+													return "link_" + _att + " visible";
+												} else {
+													return "link_" + _att + " hidden";
+												}
+											});
+
 										}
                 							
 											
                 						function visibilityText(selected, classname) {
+
                 							d3.select(selected)
                 								.select("text")
                 								.transition(1000)
                 								.attr("class", classname);
+
                 						}
                 						
 										
@@ -403,8 +418,8 @@
 													for(var i = 0; i < IP_to_country.length; i++) {
 														IP_nodes[i].country = IP_to_country[i].country;
 													}
-													buildIncomingConnections("SourceIP", IP_nodes, IP_links, "left");
-													buildIncomingConnections("Username", user_nodes, user_links, "right");
+													sourceIP_connections = new BuildOutgoingConnections("SourceIP", IP_nodes, IP_links, "left");
+													username_connections = new BuildOutgoingConnections("Username", user_nodes, user_links, "right");
 													//buildIPConnections("SourcePort", source_port_nodes, source_port_links, "right");
 												}
 											});
