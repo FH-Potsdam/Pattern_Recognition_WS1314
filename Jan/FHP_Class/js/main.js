@@ -25,8 +25,9 @@
 										var source_port_nodes = [];
                     					var source_port_links = [];
                     					var outgoing_links = [];
-                    					var sourceIP_connections;
-                    					var username_connections;
+                    					//var sourceIP_connections;
+                    					//var username_connections;
+                    					var connections = {};
 
 										
 										var svg = d3.select("body")
@@ -298,7 +299,9 @@
 												})
 												.attr("class", "circle_" + att)
 												.on("click", function(d){
-													buildIncomingConnections(d.children, att);
+													console.log(att);
+													buildIncomingConnections(d.children, attribute);
+													//console.log(self.link);
 													self.link.transition()
 													.attr("class", function(e){
 														if (e[att] === d[att]) {
@@ -314,7 +317,14 @@
 
 										function buildIncomingConnections(_children, _att) {
 
-											username_connections.link.attr("class", function(c) { //nur mit Umweg über die id möglich 
+											console.log(connections[other_att]);
+											var other_att;
+											if (_att === "SourceIP") {
+												other_att = "Username";
+											} else {
+												other_att = "SourceIP";
+											}
+											connections[other_att].link.attr("class", function(c) { //nur mit Umweg über die id möglich 
 												//console.log("children: "+ _children);
 												isVisible = _children.some(function(element) {
 													return (c.id === element.id);
@@ -418,9 +428,10 @@
 													for(var i = 0; i < IP_to_country.length; i++) {
 														IP_nodes[i].country = IP_to_country[i].country;
 													}
-													sourceIP_connections = new BuildOutgoingConnections("SourceIP", IP_nodes, IP_links, "left");
-													username_connections = new BuildOutgoingConnections("Username", user_nodes, user_links, "right");
+													connections.SourceIP = new BuildOutgoingConnections("SourceIP", IP_nodes, IP_links, "left");
+													connections.Username = new BuildOutgoingConnections("Username", user_nodes, user_links, "right");
 													//buildIPConnections("SourcePort", source_port_nodes, source_port_links, "right");
+													//console.log(connections["SourceIP"]);
 												}
 											});
                 							
