@@ -1,0 +1,3 @@
+[submodule "Paul/ace-fold-info"]
+	path = Paul/ace-fold-info
+	url = https://github.com/WrongEntertainment/ace-fold-info.git
