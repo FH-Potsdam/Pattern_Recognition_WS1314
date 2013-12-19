@@ -9,7 +9,13 @@
             }
             
             #regex {
-                margin: 10px;
+
+            }
+
+            #search {
+                position: fixed;
+                top: 320px;
+                left: 650px;
             }
             
             .log_line {
@@ -46,21 +52,42 @@
             }
             
             .canvas {
+                margin: 40px;
                 float: left;
             }
             
-            .focus {
-                float: left;
-                background-color: #ffffff;
+            .detail {
+                position: fixed;
+                top: 70px;
+                left: 650px;
+                background-color: #CFCFCF;
                 color: #737270;
-                margin: 20px;
                 padding: 10px;
                 width: 500px;
-                height: 480px;
+                height: 160px;
                 overflow: auto;
             }
+
+            .selection {
+                position: fixed;
+                left: 650px;
+                top: 350px;
+                background-color: #CFCFCF;
+                color: #737270;
+                padding: 10px;
+                width: 500px;
+                height: 220px;
+                overflow: auto;
+            }
+
+            h1 {
+                position: fixed;
+                color: #ffffff;
+                font-family: Arial;
+                font-size: 18px;
+            }
             
-            p {
+            .detail_text, .selection_text {
                 font-family: Arial;
                 font-size: 11px;
             }
@@ -78,14 +105,7 @@
 			
 			.link_Username {
                 fill: none;
-                stroke: #00e684;
-                stroke-width: 1px;
-                opacity: 0.3;
-            }
-			
-			.link_SourcePort {
-                fill: none;
-                stroke: #00e684;
+                stroke: #38778A;
                 stroke-width: 1px;
                 opacity: 0.3;
             }
@@ -114,14 +134,6 @@
                 shape-rendering: crispEdges;
             }
 			
-			.circle_text_SourcePort {
-                fill: #f2f2f2;
-                font-family: sans-serif;
-                font-size: 8px;
-                stroke: none;
-                shape-rendering: crispEdges;
-            }
-			
 			.circle_SourceIP {
                 fill: #6bd4e6;
                 stroke: none;
@@ -129,16 +141,11 @@
             }
 			
 			.circle_Username {
-                fill: #00e684;
+                fill: #38778A;
                 stroke: none;
 				opacity: 0.9;
             }
 			
-			.circle_SourcePort {
-                fill: #00e684;
-                stroke: none;
-				opacity: 0.9;
-            }
 			
         </style>
     </head>
@@ -146,7 +153,7 @@
         <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
         <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
         <div id="log">
-            <script src="js/main_old1.js">
+            <script src="js/main.js">
                 				
                                 
                                /**/
@@ -155,7 +162,9 @@
             </script>
         </div>
         <div id="search">
-            <input type="text" id="regex" size=10 value="scanner" style="height:15px;width:200px"/><input type="button" id="suchen" value="Suchen" /><input type="button" id="find_occurences" value="Find Occurences" />
+            <input type="text" id="regex" size=10 value="password" style="height:15px;width:200px"/>
+            <input type="button" id="suchen" value="Suchen" />
+            <input type="button" id="find_occurences" value="Find Occurences" />
         </div>
     </body>
 </html>

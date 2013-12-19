@@ -1,12 +1,11 @@
  $(document).ready(function(){
                                                         
-                                    d3.csv("git.csv", function(data){
+                                    d3.csv("auth.csv", function(data){
                 												
-                						var width = 580, height = 9300;
-                						var overview_rect = 9000;
+                						var width = 580, height = 1660;
+                						var overview_rect = 1400;
                 						var lines_per_pixel = data.length/overview_rect;
-                						//var format = d3.time.format("%y.%m.%d %H:%M"); //01.08.18 06:26
-                						var format = d3.time.format("%b %d %H:%M"); //01.08.18 06:26
+                						var format = d3.time.format("%y.%m.%d %H:%M"); //01.08.18 06:26
                 						
                 						var diagonal = d3.svg.diagonal()
                     						.projection(function(d) { return [d.y, d.x]; });
@@ -14,9 +13,7 @@
                 						var ytime = d3.time.scale().range([20, 20+overview_rect])
                 							.domain(d3.extent(data, function(d) { return format.parse(d.Time); }));
                 							
-                						//var hour_ticks = ytime.ticks(d3.time.hours, 1);
                 						var hour_ticks = ytime.ticks(d3.time.hours, 1);
-                						//console.log(hour_ticks);
                 						var IP_frequency; 
 										var user_frequency;
 										var source_port_frequency;
@@ -28,6 +25,8 @@
 										var source_port_nodes = [];
                     					var source_port_links = [];
                     					var outgoing_links = [];
+                    					//var sourceIP_connections;
+                    					//var username_connections;
                     					var connections = {};
 
 										
@@ -44,7 +43,7 @@
                 							for (var j=0; j < hour_ticks.length; j++) {
 												//console.log(format.parse(d.Time) - hour_ticks[j]);
                 								if (format.parse(d.Time) - hour_ticks[j] === 0) {
-                									if (first_set === false) {
+                									if (first_set === false){
                 										hour_ticks[j].value = hour_ticks[j];
                 										hour_ticks[j].id = i;
                 										first_set = true;
@@ -53,8 +52,6 @@
                 							}
                 							
                 						});
-
-                						//console.log(format.parse(data[9668].Time) - hour_ticks[3]);
 										
 										var y = d3.scale.linear().range([20, 20+overview_rect])
                 							.domain(d3.extent(data.map(function(d) { return +d.id; })));
@@ -64,10 +61,10 @@
 										getCountries(IP_frequency, "SourceIP");
 										
 										user_frequency = calculateFrequencyAndLinks(data, "Username");
-										calculateNodeLinkPositions(user_frequency, "Username", user_nodes, user_links, 431, 318);
+										calculateNodeLinkPositions(user_frequency, "Username", user_nodes, user_links, 431, 343);
 										
-										//source_port_frequency = calculateFrequencyAndLinks(data, "SourcePort");
-										//calculateNodeLinkPositions(source_port_frequency, "SourcePort", source_port_nodes, source_port_links, 431, 343);
+										source_port_frequency = calculateFrequencyAndLinks(data, "SourcePort");
+										calculateNodeLinkPositions(source_port_frequency, "SourcePort", source_port_nodes, source_port_links, 431, 343);
                 						
                 						var nest = d3.nest()
                     								.key(function(d,i) { return Math.round(+d.id/lines_per_pixel); })
@@ -80,14 +77,16 @@
                 								e.marked = false;
                 							});
                 						});	
-																					
+										
+										//console.log(data);
+											
 										var container_xpos = 190
 											time_container_xpos = container_xpos + 101,
-											timelines_xpos = time_container_xpos + 30;
+											timelines_xpos = time_container_xpos + 20;
 											
 										var brush = d3.svg.brush()
 											.y(y)
-											.extent([0, 300])
+											.extent([0, 500])
 											.on("brush", brushmove);
 											
 										var container = svg.append("rect")
@@ -96,9 +95,9 @@
 											.attr("x", container_xpos)
 											.attr("y", 20)
 											.style("fill", "#606060");
-
+											
 										var time_container = svg.append("rect")
-											.attr("width", 25)
+											.attr("width", 50)
 											.attr("height", overview_rect)
 											.attr("x", time_container_xpos)
 											.attr("y", 20)
@@ -115,8 +114,10 @@
 												visibilityText(this, "time_line_text");
 											});
 
+										console.log(hour_ticks);
+											
 										time_lines.append("rect")
-											.attr("width", 10)
+											.attr("width", 18)
 											.attr("height", 1)
 											.attr("x", time_container_xpos)
 											.attr("y", function(d, i){
@@ -125,7 +126,7 @@
 											
 										time_lines.append("text")
 											.text(function(d){
-												return format(d.value).substring(0, 14);
+												return format(d.value).substring(9, 14);
 											}).attr("text-anchor", "start")
 											.attr("x", timelines_xpos)
 											.attr("y", function(d){
@@ -155,8 +156,6 @@
 													return "log_line no_highlight";
 												}
 											});
-
-										//console.log(hour_ticks);
 											
 										var brushg = svg.append("g")
 											.attr("class", "brush")
@@ -165,37 +164,15 @@
 											.attr("x", container_xpos)
 											.attr("width", 100);
 											
-
 										var detail = d3.select("body")
 											.append("div")
 											.attr("width", 700)
-											.classed("detail", true)
-											.append("p").classed("detail_text", true);
+											.attr("height", overview_rect)
+											.classed("focus", true);
+											
+										detail.append("p").classed("focus_text", true);
 
-										var detail_headline = d3.select("body")
-											.append("h1")
-											.text("Current selection")
-											.style("top", "30px")
-											.style("left", "650px");
-
-										var selection = d3.select("body")
-											.append("div")
-											.attr("width", 700)
-											.classed("selection", true)
-											.append("p").classed("selection_text", true);
-
-										var search_headline = d3.select("body")
-											.append("h1")
-											.text("Search")
-											.style("top", "280px")
-											.style("left", "650px");
-
-										/*var selection_headline = d3.select("body")
-											.append("h1")
-											.text("Search results")
-											.style("top", "350px")
-											.style("left", "650px");*/
-
+											
 										$('#suchen').click(findOccurrences);
 										$("#find_occurences").bind("click", function() {
                 							var selected_text = getSelectionText();
@@ -349,6 +326,7 @@
 												other_att = "SourceIP";
 											}
 											connections[other_att].link.attr("class", function(c) { //nur mit Umweg über die id möglich 
+												//console.log("children: "+ _children);
 												isVisible = _children.some(function(element) {
 													return (c.id === element.id);
 												});
@@ -374,28 +352,17 @@
                 						
 										
                 						function brushmove() {
-
                 							begin = Math.round(brush.extent()[0]);
                 							end = Math.round(brush.extent()[1]);
-                							$(".detail_text").text("");
+                							$("p").text("");
                 							
                 							for(var i = begin;i < end; i++) {
                 								var temp = $("#regex").val().toLowerCase();
                 								if (data[i].LogMessage.toLowerCase().indexOf(temp) !== -1) {
-                									$(".detail_text").append(data[i].Time + "  " + data[i].Username + "  " + data[i].SourceIP + "  " + data[i].LogMessage.toLowerCase().replace(temp, "<span>"+temp+"</span>")+"<BR>");
+                									$("p").append(data[i].Time + "  " + data[i].Username + "  " + data[i].SourceIP + "  " + data[i].LogMessage.toLowerCase().replace(temp, "<span>"+temp+"</span>")+"<BR>");
                 								} else {
-                									$(".detail_text").append(data[i].Time + "  " + data[i].Username + "  " + data[i].SourceIP + "  " + data[i].LogMessage+"<BR>");
+                									$("p").append(data[i].Time + "  " + data[i].Username + "  " + data[i].SourceIP + "  " + data[i].LogMessage+"<BR>");
                 								}
-                							}
-                						}
-
-                						function searchColumn(topelement, element, column) {
-                							if (element[column]) {
-                								if (element[column].toLowerCase().indexOf($("#regex").val().toLowerCase()) !== -1) {
-                									element.marked = true;
-                									topelement.markcount++;
-                									$(".selection_text").append(element.Time + "  " + element.Username + "  " + element.SourceIP + "  " + element.LogMessage+"<BR>");
-                								} 
                 							}
                 						}
                 						
@@ -403,16 +370,16 @@
                 						function findOccurrences(){
                 							
                                             //console.log($("#regex").val());	
-                                            $(".selection_text").text("");
 											
                 							nest.forEach(function(d) {
                 								d.markcount = 0;
                 								d.values.forEach(function(e){
-                									//console.log(d.key);
-                									e.marked = false;
-                									searchColumn(d,e,"LogMessage");
-                									searchColumn(d,e,"SourceIP");
-                									searchColumn(d,e,"Username");
+                									if (e.LogMessage.toLowerCase().indexOf($("#regex").val().toLowerCase()) !== -1) {
+                										e.marked = true;
+                										d.markcount++;
+                									} else {
+                										e.marked = false;
+                									}
                 								});
                 							});		
                 									
@@ -432,7 +399,7 @@
                 								}
                 							})
                 							.attr("opacity", function(d) {
-                								return 0.1+d.markcount/lines_per_pixel;	
+                								return 0.3+d.markcount/lines_per_pixel;	
                 							});	
                 							
                 							brushmove();
