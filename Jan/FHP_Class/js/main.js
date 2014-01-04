@@ -2,8 +2,8 @@
                                                         
                                     d3.csv("git.csv", function(data){
                 												
-                						var width = 580, height = 9300;
-                						var overview_rect = 9000;
+                						var width = 580, height = 700;
+                						var overview_rect = 600;
                 						var lines_per_pixel = data.length/overview_rect;
                 						//var format = d3.time.format("%y.%m.%d %H:%M"); //01.08.18 06:26
                 						var format = d3.time.format("%b %d %H:%M"); //01.08.18 06:26
@@ -16,13 +16,15 @@
                 							
                 						//var hour_ticks = ytime.ticks(d3.time.hours, 1);
                 						var hour_ticks = ytime.ticks(d3.time.hours, 1);
-                						//console.log(hour_ticks);
                 						var IP_frequency; 
 										var user_frequency;
+										var country_frequency;
 										var source_port_frequency;
 										var IP_to_country = [];
 										var IP_nodes = [];
                     					var IP_links = [];
+                    					var country_nodes = [];
+                    					var country_links = [];
 										var user_nodes = [];
                     					var user_links = [];
 										var source_port_nodes = [];
@@ -65,9 +67,7 @@
 										
 										user_frequency = calculateFrequencyAndLinks(data, "Username");
 										calculateNodeLinkPositions(user_frequency, "Username", user_nodes, user_links, 431, 318);
-										
-										//source_port_frequency = calculateFrequencyAndLinks(data, "SourcePort");
-										//calculateNodeLinkPositions(source_port_frequency, "SourcePort", source_port_nodes, source_port_links, 431, 343);
+
                 						
                 						var nest = d3.nest()
                     								.key(function(d,i) { return Math.round(+d.id/lines_per_pixel); })
@@ -95,14 +95,14 @@
 											.attr("height", overview_rect)
 											.attr("x", container_xpos)
 											.attr("y", 20)
-											.style("fill", "#606060");
+											.style("fill", "#2D2D2D");
 
 										var time_container = svg.append("rect")
 											.attr("width", 25)
 											.attr("height", overview_rect)
 											.attr("x", time_container_xpos)
 											.attr("y", 20)
-											.style("fill", "#999999");
+											.style("fill", "#474747");
 											
 										var time_lines = svg.selectAll(".time_line")
 											.data(hour_ticks)
@@ -165,7 +165,6 @@
 											.attr("x", container_xpos)
 											.attr("width", 100);
 											
-
 										var detail = d3.select("body")
 											.append("div")
 											.attr("width", 700)
@@ -190,12 +189,7 @@
 											.style("top", "280px")
 											.style("left", "650px");
 
-										/*var selection_headline = d3.select("body")
-											.append("h1")
-											.text("Search results")
-											.style("top", "350px")
-											.style("left", "650px");*/
-
+									
 										$('#suchen').click(findOccurrences);
 										$("#find_occurences").bind("click", function() {
                 							var selected_text = getSelectionText();
@@ -213,8 +207,8 @@
 												IP_to_country.push({SourceIP:k});
 											}
 											
-											IP_to_country.forEach(function(d,i){
-												getCountryFromIP(d.SourceIP, i, fLength, function(location){
+											IP_to_country.forEach(function(d,i) {
+												getCountryFromIP(d.SourceIP, i, fLength, function(location) {
 													IP_to_country[i].country = location.country_name;
 												});
 											});
@@ -235,7 +229,7 @@
 											for (attribute in _frequency) {
 												//console.log(temp_string);
 												_frequency[attribute].x = nodes_xpos;
-												_frequency[attribute].y = 20+overview_rect/fLength*l;
+												_frequency[attribute].y = 50+(overview_rect-20)/fLength*l;
 												_frequency[attribute][temp_string] = Object.keys(_frequency)[l];
 												_nodes.push(_frequency[attribute]);
 												_frequency[attribute].children.forEach(function(e,j) {
@@ -257,13 +251,33 @@
 										}
 
 
+										function aggregateDuplicates(_value, _attribute) {
+
+											if (_value) {
+												if (_attribute === "Username") {
+													if (_value.toLowerCase().indexOf("invalid user") !== -1) {
+														return "invalid user";
+													} else {
+														return _value;
+													}
+												} else if (_attribute === "SourceIP") {
+													return _value;
+												} else if (_attribute === "Country") {
+													return _value;
+												}
+											}
+
+										}
+
+
                 						function calculateFrequencyAndLinks(array, attribute) {
 											
 											var frequency_new = {};
 											var value;
 											
 											for (var i = 0; i < array.length; i++) {
-												value = array[i][attribute];
+												//console.log(array[i]);
+												value = aggregateDuplicates(array[i][attribute], attribute);
 												if (value in frequency_new) {
 													frequency_new[value].count++;
 													frequency_new[value].children.push({id: array[i].id});
@@ -297,7 +311,7 @@
 
 											this.circle_text = this.circle_and_text
 												.append("text")
-												.attr("x", function(d){
+												.attr("x", function(d) {
 													if (side === "left") {
 														return d.x - 90;
 													} else {
@@ -343,10 +357,10 @@
 										function buildIncomingConnections(_children, _att) {
 											
 											var other_att;
-											if (_att === "SourceIP") {
+											if (_att === "Country") {
 												other_att = "Username";
 											} else {
-												other_att = "SourceIP";
+												other_att = "Country";
 											}
 											connections[other_att].link.attr("class", function(c) { //nur mit Umweg über die id möglich 
 												isVisible = _children.some(function(element) {
@@ -361,20 +375,32 @@
 											});
 
 										}
-                							
+
+
+										function buildBrushConnections(_begin, _end) {
+
+											connections["Country"].link.attr("class", function(c, j) {
+												if ((c.id >= _begin) && (c.id <= _end)) {
+													return "link_" + "Country" + " visible";
+												} else {
+													return "link_" + "Country" + " hidden";
+												}	
+											});
+
+											connections["Username"].link.attr("class", function(c, j) {
+												if ((c.id >= _begin) && (c.id <= _end)) {
+													return "link_" + "Username" + " visible";
+												} else {
+													return "link_" + "Username" + " hidden";
+												}	
+											});
 											
-                						function visibilityText(selected, classname) {
-
-                							d3.select(selected)
-                								.select("text")
-                								.transition(1000)
-                								.attr("class", classname);
-
-                						}
+										}
+                							
                 						
-										
                 						function brushmove() {
 
+                							//console.log(IP_links); //d3.select(this).data()[0].index
                 							begin = Math.round(brush.extent()[0]);
                 							end = Math.round(brush.extent()[1]);
                 							$(".detail_text").text("");
@@ -387,9 +413,23 @@
                 									$(".detail_text").append(data[i].Time + "  " + data[i].Username + "  " + data[i].SourceIP + "  " + data[i].LogMessage+"<BR>");
                 								}
                 							}
+                							buildBrushConnections(begin, end);
+
                 						}
 
+
+                						function visibilityText(selected, classname) {
+
+                							d3.select(selected)
+                								.select("text")
+                								.transition(1000)
+                								.attr("class", classname);
+
+                						}
+
+
                 						function searchColumn(topelement, element, column) {
+
                 							if (element[column]) {
                 								if (element[column].toLowerCase().indexOf($("#regex").val().toLowerCase()) !== -1) {
                 									element.marked = true;
@@ -397,6 +437,7 @@
                 									$(".selection_text").append(element.Time + "  " + element.Username + "  " + element.SourceIP + "  " + element.LogMessage+"<BR>");
                 								} 
                 							}
+
                 						}
                 						
 										
@@ -408,7 +449,6 @@
                 							nest.forEach(function(d) {
                 								d.markcount = 0;
                 								d.values.forEach(function(e){
-                									//console.log(d.key);
                 									e.marked = false;
                 									searchColumn(d,e,"LogMessage");
                 									searchColumn(d,e,"SourceIP");
@@ -462,9 +502,24 @@
 													for(var i = 0; i < IP_to_country.length; i++) {
 														IP_nodes[i].country = IP_to_country[i].country;
 													}
-													connections.SourceIP = new BuildOutgoingConnections("SourceIP", IP_nodes, IP_links, "left");
+
+													data.forEach(function(d,i) {
+														for (var j = 0; j < IP_to_country.length; j++) {
+															if (d.SourceIP === IP_to_country[j].SourceIP) {
+																d.Country = IP_to_country[j].country;
+																//console.log(d.Country);
+															}
+														}
+													});
+
+													country_frequency = calculateFrequencyAndLinks(data, "Country");
+													calculateNodeLinkPositions(country_frequency, "Country", country_nodes, country_links, 100, 188);
+
+													console.log(country_frequency);
+
+													//connections.SourceIP = new BuildOutgoingConnections("SourceIP", IP_nodes, IP_links, "left");
+													connections.Country = new BuildOutgoingConnections("Country", country_nodes, country_links, "left");
 													connections.Username = new BuildOutgoingConnections("Username", user_nodes, user_links, "right");
-													//buildIPConnections("SourcePort", source_port_nodes, source_port_links, "right");
 													//console.log(connections["SourceIP"]);
 												}
 											});
