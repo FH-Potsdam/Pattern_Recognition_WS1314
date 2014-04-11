@@ -91,12 +91,10 @@
                     								.entries(data);
                 									
                 						nest.forEach(function(d) {
-                							d.markcount1 = 0;
-                							d.markcount2 = 0;
+                							d.markcount = 0;
                 							d.values.forEach(function(e){
                 								e.Time = format.parse(e.Time);
                 								e.marked1 = false;
-                								e.marked2 = false;
                 							});
                 						});	
 																					
@@ -152,11 +150,10 @@
 											}).attr("class", "time_line_text");
 											
 										var log_lines = svg.selectAll(".log_line")
-											.data(nest);
-
-										var log_lines_left = log_lines.enter()
+											.data(nest)
+											.enter()
 											.append("rect")
-											.attr("width", 50)
+											.attr("width", 100)
 											.attr("height", 1)
 											.attr("x", container_xpos)
 											.attr("y", function(d, i){
@@ -165,28 +162,6 @@
 												var temp = false;
 												d.values.forEach(function(e, j){
 													if (e.marked1 == true) {
-														temp = true;
-													}
-												});
-												if (temp == true) {
-													return "log_line highlight1";
-												}
-												else {
-													return "log_line no_highlight";
-												}
-											});
-
-										var log_lines_right = log_lines.enter()
-											.append("rect")
-											.attr("width", 50)
-											.attr("height", 1)
-											.attr("x", container_xpos + 50)
-											.attr("y", function(d, i){
-												return 20 + i;
-											}).attr("class", function(d){
-												var temp = false;
-												d.values.forEach(function(e, j){
-													if (e.marked2 == true) {
 														temp = true;
 													}
 												});
@@ -457,8 +432,8 @@
         										var brush_size = end - begin;
         										var font_size = (21 - Math.log(brush_size)*2.5);
         										
-        										//console.log(Math.log(brush_size)*3);
-        										//console.log("font: " + font_size);
+        										console.log(Math.log(brush_size)*3);
+        										console.log("font: " + font_size);
 
         										$(".detail_text").text("");
                 							
@@ -475,14 +450,14 @@
                 									if (operator === "and") { 
                 										/*if ((expressionsAnd[0] || expressionsAnd[1] || expressionsAnd[2] || expressionsAnd[3] || expressionsAnd[4] || 
                 												expressionsAnd[5] || expressionsAnd[6] || expressionsAnd[7] || expressionsAnd[8]) === true) { */
-                										$(".detail_text").append(calculateHighlightedText(data[i], ["Username", "SourceIP", "LogMessage"], regex1, regex2))
-                											.css("font-size", font_size + "px");
+                											$(".detail_text").append(calculateHighlightedText(data[i], ["Username", "SourceIP", "LogMessage"], regex1, regex2))
+                												.css("font-size", font_size + "px");
                 										//} 
                 									} else if (operator === "or") { 
                 										/*if ((expressionsOr[0] || expressionsOr[1] || expressionsOr[2] || expressionsOr[3] || expressionsOr[4] || 
                 												expressionsOr[5] || expressionsOr[6] || expressionsOr[7] || expressionsOr[8]) === true) { */
-                										$(".detail_text").append(calculateHighlightedText(data[i], ["Username", "SourceIP", "LogMessage"], regex1, regex2))
-                											.css("font-size", font_size + "px"); 
+                											$(".detail_text").append(calculateHighlightedText(data[i], ["Username", "SourceIP", "LogMessage"], regex1, regex2))
+                												.css("font-size", font_size + "px"); 
                 										//}
                 									}
 
@@ -505,6 +480,7 @@
                 								.select("text")
                 								.transition(1000)
                 								.attr("class", classname);
+
                 						}
 
 
@@ -528,28 +504,14 @@
                 							if (operator === "and") { 
                 								if ((expressionsAnd[0] || expressionsAnd[1] || expressionsAnd[2] || expressionsAnd[3] || expressionsAnd[4] || expressionsAnd[5] || expressionsAnd[6] || expressionsAnd[7] || expressionsAnd[8]) === true) { 
                 									element.marked1 = true;
-                									element.marked2 = true;
-                									topelement.markcount1++;
-                									topelement.markcount2++;
+                									topelement.markcount++;
                 									$(".selection_text").append(calculateHighlightedText(element, column, regex1, regex2));
                 								} 
                 							} else if (operator === "or") {
                 								if ((expressionsOr[0] || expressionsOr[1] || expressionsOr[2] || expressionsOr[3] || expressionsOr[4] || 
                 										expressionsOr[5] || expressionsOr[6] || expressionsOr[7] || expressionsOr[8]) === true) { 
-                									if ((calculateHighlightedText(element, column, regex1, regex2).toLowerCase().search(regex1) !== -1) && (calculateHighlightedText(element, column, regex1, regex2).toLowerCase().search(regex2) !== -1)) {
-                										element.marked1 = true;
-                										element.marked2 = true;
-                										topelement.markcount1++;
-                										topelement.markcount2++;
-                									} else if (calculateHighlightedText(element, column, regex1, regex2).toLowerCase().search(regex1) !== -1) {
-                										element.marked1 = true;
-                										element.marked2 = false;
-                										topelement.markcount1++;
-                									} else {
-                										element.marked1 = false;
-                										element.marked2 = true;
-                										topelement.markcount2++;
-                									}
+                									element.marked1 = true;
+                									topelement.markcount++;
                 									$(".selection_text").append(calculateHighlightedText(element, column, regex1, regex2));
                 								} 
                 							}
@@ -563,8 +525,8 @@
                 							var highlightedText = format(element.Time);
 
                 							for (var i = 0; i < column.length; i++) {
-                								highlightedElements[i] = element[column[i]].toLowerCase().replace(_regex1, "<span class=\"span_highlight1\">"+_regex1+"</span>");
-                								highlightedElements[i] = highlightedElements[i].toLowerCase().replace(_regex2, "<span class=\"span_highlight2\">"+_regex2+"</span>");
+                								highlightedElements[i] = element[column[i]].toLowerCase().replace(_regex1, "<span>"+_regex1+"</span>");
+                								highlightedElements[i] = highlightedElements[i].toLowerCase().replace(_regex2, "<span>"+_regex2+"</span>");
                 								highlightedText = highlightedText + " " + highlightedElements[i];
                 							}
 
@@ -580,18 +542,16 @@
                                             $(".selection_text").text("");
 											
                 							nest.forEach(function(d) {
-                								d.markcount1 = 0;
-                								d.markcount2 = 0;
+                								d.markcount = 0;
                 								d.values.forEach(function(e){
                 									e.marked1 = false;
-                									e.marked2 = false;
                 									searchColumn(d,e, ["Username", "SourceIP", "LogMessage"]);
                 								});
                 							});		
                 									
                 							//console.log(nest);
                 				
-                							log_lines_left.attr("class",function(d) {
+                							log_lines.attr("class",function(d) {
                 								var temp = false;
                 								d.values.forEach(function(e,j){
                 									if (e.marked1 == true) {
@@ -605,26 +565,7 @@
                 								}
                 							})
                 							.attr("opacity", function(d) {
-                								console.log(0.1+Math.sqrt(d.markcount1/lines_per_pixel));
-                								return 0.0+Math.sqrt(d.markcount1/lines_per_pixel);	
-                							});
-
-                							log_lines_right.attr("class",function(d) {
-                								var temp = false;
-                								d.values.forEach(function(e,j){
-                									if (e.marked2 == true) {
-                										temp = true;
-                									} 
-                								});
-                								if (temp == true) {
-                									return "log_line highlight2";
-                								} else {
-                									return "log_line no_highlight";
-                								}
-                							})
-                							.attr("opacity", function(d) {
-                								console.log(0.1+Math.sqrt(d.markcount2/lines_per_pixel));
-                								return 0.0+Math.sqrt(d.markcount2/lines_per_pixel);	
+                								return 0.1+d.markcount/lines_per_pixel;	
                 							});	
                 							
                 							brushmove();

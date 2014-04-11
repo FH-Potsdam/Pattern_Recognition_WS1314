@@ -1,8 +1,8 @@
  $(document).ready(function(){
                                                         
-                                    d3.csv("git_TRIMMED.csv", function(data){
+                                    d3.csv("git.csv", function(data){
                 												
-                						var width = 580, height = 800;
+                						var width = 580, height = 700;
                 						var overview_rect = 600;
                 						var lines_per_pixel = data.length/overview_rect;
                 						//var format = d3.time.format("%y.%m.%d %H:%M"); //01.08.18 06:26
@@ -15,7 +15,7 @@
                 							.domain(d3.extent(data, function(d) { return format.parse(d.Time); }));
                 							
                 						//var hour_ticks = ytime.ticks(d3.time.hours, 1);
-                						var hour_ticks = ytime.ticks(d3.time.hours, 2);
+                						var hour_ticks = ytime.ticks(d3.time.hours, 1);
                 						var IP_frequency; 
 										var user_frequency;
 										var country_frequency;
@@ -32,26 +32,9 @@
                     					var outgoing_links = [];
                     					var connections = {};
 
-
-                    					var graphic_headline = d3.select("body")
-											.append("h1")
-											.text("Log File Overview")
-											.style("top", "30px")
-											.style("left", "30px")
-											.classed("headline", true);
 										
-										var detail_headline = d3.select("body")
-											.append("h1")
-											.text("Current selection")
-											.style("top", "30px")
-											.style("left", "630px")
-											.classed("sub_headline", true);
-
 										var svg = d3.select("body")
-											.append("div")
-											.classed("canvas_container", true)
                 							.append("svg")
-                							.style("top", "60px")
                 							.attr("width", width)
                 							.attr("height", height)
                 							.classed("canvas", true); 
@@ -91,12 +74,10 @@
                     								.entries(data);
                 									
                 						nest.forEach(function(d) {
-                							d.markcount1 = 0;
-                							d.markcount2 = 0;
+                							d.markcount = 0;
                 							d.values.forEach(function(e){
                 								e.Time = format.parse(e.Time);
-                								e.marked1 = false;
-                								e.marked2 = false;
+                								e.marked = false;
                 							});
                 						});	
 																					
@@ -106,7 +87,7 @@
 											
 										var brush = d3.svg.brush()
 											.y(y)
-											.extent([0, 500])
+											.extent([0, 300])
 											.on("brush", brushmove);
 											
 										var container = svg.append("rect")
@@ -152,11 +133,10 @@
 											}).attr("class", "time_line_text");
 											
 										var log_lines = svg.selectAll(".log_line")
-											.data(nest);
-
-										var log_lines_left = log_lines.enter()
+											.data(nest)
+											.enter()
 											.append("rect")
-											.attr("width", 50)
+											.attr("width", 100)
 											.attr("height", 1)
 											.attr("x", container_xpos)
 											.attr("y", function(d, i){
@@ -164,34 +144,12 @@
 											}).attr("class", function(d){
 												var temp = false;
 												d.values.forEach(function(e, j){
-													if (e.marked1 == true) {
+													if (e.marked == true) {
 														temp = true;
 													}
 												});
 												if (temp == true) {
-													return "log_line highlight1";
-												}
-												else {
-													return "log_line no_highlight";
-												}
-											});
-
-										var log_lines_right = log_lines.enter()
-											.append("rect")
-											.attr("width", 50)
-											.attr("height", 1)
-											.attr("x", container_xpos + 50)
-											.attr("y", function(d, i){
-												return 20 + i;
-											}).attr("class", function(d){
-												var temp = false;
-												d.values.forEach(function(e, j){
-													if (e.marked2 == true) {
-														temp = true;
-													}
-												});
-												if (temp == true) {
-													return "log_line highlight1";
+													return "log_line highlight";
 												}
 												else {
 													return "log_line no_highlight";
@@ -213,12 +171,11 @@
 											.classed("detail", true)
 											.append("p").classed("detail_text", true);
 
-										var search_headline = d3.select("body")
+										var detail_headline = d3.select("body")
 											.append("h1")
-											.text("Search")
-											.style("top", "740px")
-											.style("left", "30px")
-											.classed("sub_headline", true);
+											.text("Current selection")
+											.style("top", "30px")
+											.style("left", "650px");
 
 										var selection = d3.select("body")
 											.append("div")
@@ -226,19 +183,20 @@
 											.classed("selection", true)
 											.append("p").classed("selection_text", true);
 
+										var search_headline = d3.select("body")
+											.append("h1")
+											.text("Search")
+											.style("top", "280px")
+											.style("left", "650px");
 
-										$("<div id=\"search\"></div>").insertAfter(".selection");
-
-										$("#search").append("<input type=\"text\" id=\"regex1\" size=10 placeholder=\"Insert RegEx or String\" style=\"height:15px;width:150px\"/>");
-										$("#search").append("<select id=\"operator\"><option value=\"and\">AND</option><option value=\"or\">OR</option><option value=\"not\">NOT</option></select>");
-										$("#search").append("<input type=\"text\" id=\"regex2\" size=10 placeholder=\"Insert RegEx or String\" style=\"height:15px;width:150px\"/>");
-										$("#search").append("<input type=\"button\" id=\"suchen\" value=\"Suchen\" />");
-										//$("#search").append("<input type=\"button\" id=\"find_occurences\" value=\"Find Occurences\" />");
-
-										console.log($("#operator :selected").val());
-
+									
 										$('#suchen').click(findOccurrences);
-
+										$("#find_occurences").bind("click", function() {
+                							var selected_text = getSelectionText();
+                							$("#regex").val(selected_text);
+                							$('#suchen').click(findOccurrences());
+                						});
+										
 
 										function getCountries(_frequency, attribute) {
 											
@@ -441,60 +399,21 @@
                 							
                 						
                 						function brushmove() {
-                	
-                							var s = d3.event.target.extent();
-                							var regex1 = $("#regex1").val().toLowerCase();
-                							var regex2 = $("#regex2").val().toLowerCase();
-                							var operator = $("#operator :selected").val();
-                							var expressionsAnd = [];
-                							var expressionsOr = [];
-                							var counter = 0;
-                							var column = ["Username", "SourceIP", "LogMessage"];
 
-    										if (s[1]-s[0] <= 500) {
-        										var begin = Math.round(s[0]);
-        										var end = Math.round(s[1]);
-        										var brush_size = end - begin;
-        										var font_size = (21 - Math.log(brush_size)*2.5);
-        										
-        										//console.log(Math.log(brush_size)*3);
-        										//console.log("font: " + font_size);
-
-        										$(".detail_text").text("");
+                							//console.log(IP_links); //d3.select(this).data()[0].index
+                							begin = Math.round(brush.extent()[0]);
+                							end = Math.round(brush.extent()[1]);
+                							$(".detail_text").text("");
                 							
-                								for(var i = begin;i < end; i++) {
-
-                									for (var j = 0; j < column.length; j++) {
-                										for (var k = 0; k < column.length; k++) {
-                											expressionsAnd[counter] = ((data[i][column[j]].toLowerCase().search(regex1) !== -1) && (data[i][column[k]].toLowerCase().search(regex2) !== -1));
-                											expressionsOr[counter] = ((data[i][column[j]].toLowerCase().search(regex1) !== -1) || (data[i][column[k]].toLowerCase().search(regex2) !== -1));
-                											counter++;
-                										}
-                									}
-
-                									if (operator === "and") { 
-                										/*if ((expressionsAnd[0] || expressionsAnd[1] || expressionsAnd[2] || expressionsAnd[3] || expressionsAnd[4] || 
-                												expressionsAnd[5] || expressionsAnd[6] || expressionsAnd[7] || expressionsAnd[8]) === true) { */
-                										$(".detail_text").append(calculateHighlightedText(data[i], ["Username", "SourceIP", "LogMessage"], regex1, regex2))
-                											.css("font-size", font_size + "px");
-                										//} 
-                									} else if (operator === "or") { 
-                										/*if ((expressionsOr[0] || expressionsOr[1] || expressionsOr[2] || expressionsOr[3] || expressionsOr[4] || 
-                												expressionsOr[5] || expressionsOr[6] || expressionsOr[7] || expressionsOr[8]) === true) { */
-                										$(".detail_text").append(calculateHighlightedText(data[i], ["Username", "SourceIP", "LogMessage"], regex1, regex2))
-                											.css("font-size", font_size + "px"); 
-                										//}
-                									}
-
+                							for(var i = begin;i < end; i++) {
+                								var temp = $("#regex").val().toLowerCase();
+                								if (data[i].LogMessage.toLowerCase().indexOf(temp) !== -1) {
+                									$(".detail_text").append(data[i].Time + "  " + data[i].Username + "  " + data[i].SourceIP + "  " + data[i].LogMessage.toLowerCase().replace(temp, "<span>"+temp+"</span>")+"<BR>");
+                								} else {
+                									$(".detail_text").append(data[i].Time + "  " + data[i].Username + "  " + data[i].SourceIP + "  " + data[i].LogMessage+"<BR>");
                 								}
-
-                								buildBrushConnections(begin, end);
-
-    										} else {
-    											d3.event.target.extent([s[0],s[0]+499]); 
-    											d3.event.target(d3.select(this));
-    											brushmove();
-    										}
+                							}
+                							buildBrushConnections(begin, end);
 
                 						}
 
@@ -505,126 +424,55 @@
                 								.select("text")
                 								.transition(1000)
                 								.attr("class", classname);
+
                 						}
 
 
                 						function searchColumn(topelement, element, column) {
 
-                							var regex1 = $("#regex1").val().toLowerCase();
-                							var regex2 = $("#regex2").val().toLowerCase();
-                							var operator = $("#operator :selected").val();
-                							var expressionsAnd = [];
-                							var expressionsOr = [];
-                							var counter = 0;
-
-                							for (var i = 0; i < column.length; i++) {
-                								for (var j = 0; j < column.length; j++) {
-                									expressionsAnd[counter] = ((element[column[i]].toLowerCase().search(regex1) !== -1) && (element[column[j]].toLowerCase().search(regex2) !== -1));
-                									expressionsOr[counter] = ((element[column[i]].toLowerCase().search(regex1) !== -1) || (element[column[j]].toLowerCase().search(regex2) !== -1));
-                									counter++;
-                								}
-                							}
-
-                							if (operator === "and") { 
-                								if ((expressionsAnd[0] || expressionsAnd[1] || expressionsAnd[2] || expressionsAnd[3] || expressionsAnd[4] || expressionsAnd[5] || expressionsAnd[6] || expressionsAnd[7] || expressionsAnd[8]) === true) { 
-                									element.marked1 = true;
-                									element.marked2 = true;
-                									topelement.markcount1++;
-                									topelement.markcount2++;
-                									$(".selection_text").append(calculateHighlightedText(element, column, regex1, regex2));
-                								} 
-                							} else if (operator === "or") {
-                								if ((expressionsOr[0] || expressionsOr[1] || expressionsOr[2] || expressionsOr[3] || expressionsOr[4] || 
-                										expressionsOr[5] || expressionsOr[6] || expressionsOr[7] || expressionsOr[8]) === true) { 
-                									if ((calculateHighlightedText(element, column, regex1, regex2).toLowerCase().search(regex1) !== -1) && (calculateHighlightedText(element, column, regex1, regex2).toLowerCase().search(regex2) !== -1)) {
-                										element.marked1 = true;
-                										element.marked2 = true;
-                										topelement.markcount1++;
-                										topelement.markcount2++;
-                									} else if (calculateHighlightedText(element, column, regex1, regex2).toLowerCase().search(regex1) !== -1) {
-                										element.marked1 = true;
-                										element.marked2 = false;
-                										topelement.markcount1++;
-                									} else {
-                										element.marked1 = false;
-                										element.marked2 = true;
-                										topelement.markcount2++;
-                									}
-                									$(".selection_text").append(calculateHighlightedText(element, column, regex1, regex2));
+                							if (element[column]) {
+                								if (element[column].toLowerCase().indexOf($("#regex").val().toLowerCase()) !== -1) {
+                									element.marked = true;
+                									topelement.markcount++;
+                									$(".selection_text").append(element.Time + "  " + element.Username + "  " + element.SourceIP + "  " + element.LogMessage+"<BR>");
                 								} 
                 							}
 
                 						}
                 						
-
-                						function calculateHighlightedText(element, column, _regex1, _regex2) {
-
-                							var highlightedElements = [];
-                							var highlightedText = format(element.Time);
-
-                							for (var i = 0; i < column.length; i++) {
-                								highlightedElements[i] = element[column[i]].toLowerCase().replace(_regex1, "<span class=\"span_highlight1\">"+_regex1+"</span>");
-                								highlightedElements[i] = highlightedElements[i].toLowerCase().replace(_regex2, "<span class=\"span_highlight2\">"+_regex2+"</span>");
-                								highlightedText = highlightedText + " " + highlightedElements[i];
-                							}
-
-                							highlightedText = highlightedText + "<BR>";
-
-                							return highlightedText;
-
-                						}
-
 										
                 						function findOccurrences(){
                 							
+                                            //console.log($("#regex").val());	
                                             $(".selection_text").text("");
 											
                 							nest.forEach(function(d) {
-                								d.markcount1 = 0;
-                								d.markcount2 = 0;
+                								d.markcount = 0;
                 								d.values.forEach(function(e){
-                									e.marked1 = false;
-                									e.marked2 = false;
-                									searchColumn(d,e, ["Username", "SourceIP", "LogMessage"]);
+                									e.marked = false;
+                									searchColumn(d,e,"LogMessage");
+                									searchColumn(d,e,"SourceIP");
+                									searchColumn(d,e,"Username");
                 								});
                 							});		
                 									
                 							//console.log(nest);
                 				
-                							log_lines_left.attr("class",function(d) {
+                							log_lines.attr("class",function(d) {
                 								var temp = false;
                 								d.values.forEach(function(e,j){
-                									if (e.marked1 == true) {
+                									if (e.marked == true) {
                 										temp = true;
                 									} 
                 								});
                 								if (temp == true) {
-                									return "log_line highlight1";
+                									return "log_line highlight";
                 								} else {
                 									return "log_line no_highlight";
                 								}
                 							})
                 							.attr("opacity", function(d) {
-                								console.log(0.1+Math.sqrt(d.markcount1/lines_per_pixel));
-                								return 0.0+Math.sqrt(d.markcount1/lines_per_pixel);	
-                							});
-
-                							log_lines_right.attr("class",function(d) {
-                								var temp = false;
-                								d.values.forEach(function(e,j){
-                									if (e.marked2 == true) {
-                										temp = true;
-                									} 
-                								});
-                								if (temp == true) {
-                									return "log_line highlight2";
-                								} else {
-                									return "log_line no_highlight";
-                								}
-                							})
-                							.attr("opacity", function(d) {
-                								console.log(0.1+Math.sqrt(d.markcount2/lines_per_pixel));
-                								return 0.0+Math.sqrt(d.markcount2/lines_per_pixel);	
+                								return 0.1+d.markcount/lines_per_pixel;	
                 							});	
                 							
                 							brushmove();
@@ -673,8 +521,6 @@
 													connections.Country = new BuildOutgoingConnections("Country", country_nodes, country_links, "left");
 													connections.Username = new BuildOutgoingConnections("Username", user_nodes, user_links, "right");
 													//console.log(connections["SourceIP"]);
-
-													
 												}
 											});
                 							
